@@ -72,7 +72,7 @@ def table2Repr(table):
 	return newTable
 
 def mostDivergentEntry(column):
-	#print column
+	print("Column:" + str(column))
 	# Idea: 1st count occurencys from our patternized table
 	# Then normalize it and calculate distance for every word and return the one with highest distance
 	colOcc = {}
@@ -83,13 +83,12 @@ def mostDivergentEntry(column):
 			else:
 				colOcc[char] = 1
 
-	print colOcc
 	# Normalization
 	for entry in colOcc:
 		colOcc[entry] /= len(column)
 	
-	print colOcc
-	maxDiv, maxDivIndex = 0, -1
+	print("Normalized Average Entry: " + str(colOcc))
+	divDict = {}
 
 	for i, word in enumerate(column):
 		wordOcc = defaultdict(lambda: 0)
@@ -97,16 +96,15 @@ def mostDivergentEntry(column):
 		for char in word:
 			wordOcc[char] += 1
 			
-
 		for entry in colOcc:
 			wordDiv += abs(wordOcc[entry]-colOcc[entry])
 
-		if wordDiv > maxDiv:
-			maxDiv = wordDiv
-			maxDivIndex = i
+		divDict[i] = wordDiv
 
-	print maxDivIndex
-	return maxDivIndex
+	maxDiv = sorted([divDict[key] for key in divDict], reverse=True)[0]
+	maxRows = [key for key in divDict if divDict[key] > (maxDiv * 0.8)]
+	print("Rows with  greatest difference: " + str(maxRows))
+	return maxRows
 
 
 
