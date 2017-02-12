@@ -1,9 +1,10 @@
 # coding=UTF-8
 import ujson as json
+import numpy as np
 import sys, re, string, math
 from table_reader import TableReader
 import enchant
-from collections import defaultdict
+from collections import defaultdict, Counter
 from gensim import corpora, models, similarities
 
 MIN_ROW_AMOUNT = 4
@@ -87,7 +88,7 @@ def mostDivergentEntry(column):
 	for entry in colOcc:
 		colOcc[entry] /= len(column)
 	
-	print("Normalized Average Entry: " + str(colOcc))
+	print("\tNormalized Average Entry: " + str(colOcc))
 	divDict = {}
 
 	for i, word in enumerate(column):
@@ -103,7 +104,7 @@ def mostDivergentEntry(column):
 
 	maxDiv = sorted([divDict[key] for key in divDict], reverse=True)[0]
 	maxRows = [key for key in divDict if divDict[key] > (maxDiv * 0.8)]
-	print("Rows with  greatest difference: " + str(maxRows))
+	print("\tRows with  greatest difference: " + str(maxRows))
 	return maxRows
 
 
@@ -112,16 +113,23 @@ def mostDivergentEntry(column):
 def checkSpecialRows(table):
 	rowHeader = True
 	headers = []
+	transpose = [list(i) for i in zip(*table)]
 	reprTable = table2Repr(table)
-	# 1st run: check rowHeaders
-	# transpose = [list(i) for i in zip(*table)]
+
+	# 1st run: assume rowHeaders
 	divergentLines = []
 	for column in reprTable:
-		divergentLines.append(mostDivergentEntry(column))
-	print divergentLines
-		
+		divergentLines.extend(mostDivergentEntry(column))
+	
+	divCounter = Counter(divergentLines)
+	mostCommon, numMostCommon = divCounter.most_common(1)[0]
 
-
+	headerRows = [item for item in divCounter if divCounter[item] > math.ceil(mostCommon*0.9)+1]
+	if len(headerRows) == 1:
+		return False, True, transpose[headerRows[0]]
+	else:
+		# TODO
+		pass
 
 
 	return False, headers, rowHeader
