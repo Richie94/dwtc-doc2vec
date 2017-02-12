@@ -9,10 +9,6 @@ from gensim import corpora, models, similarities
 MIN_ROW_AMOUNT = 4
 MIN_COL_AMOUNT = 4
 
-RE_NUMBER = re.compile('^[\-]?([0-9]*,?)*[0-9]*\.?[0-9]*$')
-# TODO: check this regex, still not fure because regexes are aweful
-RE_VALID = re.compile('.*[a-z,A-Z,0-9].*')
-
 
 def initReprDict():
 	reprDict = defaultdict(lambda: "X")
