@@ -11,20 +11,20 @@ MIN_ROW_AMOUNT = 4
 MIN_COL_AMOUNT = 4
 
 
-def initReprDict():
-	reprDict = defaultdict(lambda: "X")
+def initPatternDict():
+	patternDict = defaultdict(lambda: "X")
 	for char in string.ascii_lowercase:
-		reprDict[char] = "S"
+		patternDict[char] = "S"
 	for char in string.ascii_uppercase:
-		reprDict[char] = "S"
+		patternDict[char] = "S"
 	for number in range(10):
-		reprDict[str(number)] = "N"
-	reprDict["."] = "P"
-	reprDict["_"] = "U"
-	reprDict[" "] = "E"
-	return reprDict
+		patternDict[str(number)] = "N"
+	patternDict["."] = "P"
+	patternDict["_"] = "U"
+	patternDict[" "] = "E"
+	return patternDict
 
-reprDict = initReprDict()
+patternDict = initPatternDict()
 
 def checkSize(table):
 	rowAmount = len(table["relation"])
@@ -59,17 +59,17 @@ def checkLanguage(header):
 	else:
 		return False
 
-def word2Repr(word):
-	representation = ""
+def word2Pattern(word):
+	pattern = ""
 	for char in word:
-		representation += reprDict[char]
-	return representation
+		pattern += patternDict[char]
+	return pattern
 
-def table2Repr(table):
+def table2Pattern(table):
 	newTable = table[:]
 	for i, column in enumerate(table):
 		for j, row in enumerate(column):
-			newTable[i][j] = word2Repr(table[i][j])
+			newTable[i][j] = word2Pattern(table[i][j])
 	return newTable
 
 def mostDivergentEntry(column):
@@ -114,11 +114,11 @@ def checkSpecialRows(table):
 	rowHeader = True
 	headers = []
 	transpose = [list(i) for i in zip(*table)]
-	reprTable = table2Repr(table)
+	patternTable = table2Pattern(table)
 
 	# 1st run: assume rowHeaders
 	divergentLines = []
-	for column in reprTable:
+	for column in patternTable:
 		divergentLines.extend(mostDivergentEntry(column))
 	
 	divCounter = Counter(divergentLines)
