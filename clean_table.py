@@ -8,6 +8,7 @@ def laterCleanTable(table):
 def initialCleanTable(table):
 	# What we dont need:
 	# 1. Empty Columns (and/or rows)
+	# 2. Where is nearly no variance - TODO
 	return deleteSpecificFromTable(table, config.RE_NO_RUBBISH)
 
 def deleteSpecificColumns(table, regex):
@@ -24,8 +25,8 @@ def deleteSpecificColumns(table, regex):
 
 def deleteSpecificFromTable(table, regex):
 	tableWithoutSpecificColumns = deleteSpecificColumns(table, regex)
-	transpose = [list(i) for i in zip(*tableWithoutSpecificColumns[:])]
+	transpose = [list(i) for i in zip(*tableWithoutSpecificColumns)]
 	tableWithoutSpecificRows = deleteSpecificColumns(transpose, regex)
-	return [list(i) for i in zip(*tableWithoutSpecificRows[:])]
+	return [list(i) for i in zip(*tableWithoutSpecificRows)]
 
 

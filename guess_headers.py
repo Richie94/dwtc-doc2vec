@@ -1,51 +1,59 @@
 from collections import defaultdict
 import string, math, operator
 import config
+import numpy as np
+
 
 def initPatternDict():
 	patternDict = defaultdict(lambda: "X")
-	for char in string.ascii_lowercase:
-		patternDict[char] = "S"
-	for char in string.ascii_uppercase:
+	for char in string.ascii_lowercase + string.ascii_uppercase:
 		patternDict[char] = "S"
 	for number in range(10):
 		patternDict[str(number)] = "N"
 	patternDict["."] = "P"
 	patternDict[":"] = "P"
 	patternDict["_"] = "U"
+	patternDict["/"] = "U"
+	patternDict["\\"] = "U"
 	patternDict["-"] = "U"
 	patternDict[" "] = "E"
 	return patternDict
 
 patternDict = initPatternDict()
 impactFactor = {"S": 1,
-				"N": 2,
-				"P": 3,
-				"U": 3,
-				"E": 3,
-				"X": 3}
+				"N": 7,
+				"P": 10,
+				"U": 10,
+				"E": 10,
+				"X": 10}
 
 # returns: boolean headerBroken, boolean rowHeader (row vs col), array header
 def guessHeaders(table):
 	headers = []
-	transpose = [list(i) for i in zip(*table[:])]
+	transpose = [list(i) for i in zip(*table)]
 	patternTable = table2Pattern(table)
 	transposePattern = [list(i) for i in zip(*patternTable)]
-
+		
+	#colDist = float(maxDistToAverage(totalColDivDict))/len(totalColDivDict)
+	#rowDist = float(maxDistToAverage(totalRowDivDict))/len(totalRowDivDict)
 	
-	totalRowDivDict = getTableDivergencyDict(patternTable)
-	totalColDivDict = getTableDivergencyDict(transposePattern)
-	
-	colDist = maxDistToAverage(totalColDivDict)
-	rowDist = maxDistToAverage(totalRowDivDict)
+	totalRowDivDict, maxRows = getTableDivergencyDict(patternTable)
+	totalColDivDict, maxCols = getTableDivergencyDict(transposePattern)
 	
 	indexHeader, textHeader = [], []
 
-	if abs(rowDist-colDist) < 3:
-		# nearly no difference so possible broken header
-		return True, True, indexHeader, textHeader
+	# calculate standard deviation, normally where is less stddev should be the right orientation
+	rowVals = [totalRowDivDict[key] for key in totalRowDivDict]
+	colVals = [totalColDivDict[key] for key in totalColDivDict]
 
-	if rowDist > colDist:
+	rowStd = np.std(rowVals)
+	colStd = np.std(colVals)
+	print rowVals
+	print colVals
+	print rowStd, colStd
+	
+
+	if rowStd < colStd:
 		# assume rows are headers
 		rowHeader = True
 		maxRowEntry, maxRowValue = max(totalRowDivDict.iteritems(), key=operator.itemgetter(1))
@@ -109,20 +117,36 @@ def getColumnDivergencyDict(column):
 			for entry in colOcc:
 				wordDiv += abs(wordOcc[entry]-colOcc[entry])*impactFactor[entry]
 
-			divDict[i] = wordDiv
+			divDict[i] = float(wordDiv)/len(column)
 	
 	return divDict
 
 def getTableDivergencyDict(table):
 	totalDivDict = {}
+	maxLines = {}
 	for column in table:
 		columnDivDict = getColumnDivergencyDict(column)
+
+		#get Max Entry
+		maxEntry, maxValue = max(columnDivDict.iteritems(), key=operator.itemgetter(1))
+		if maxEntry in maxLines:
+			maxLines[maxEntry] += 1
+		else:
+			maxLines[maxEntry] = 1
+
 		for key in columnDivDict:
 			if key in totalDivDict:
 				totalDivDict[key] += columnDivDict[key]
 			else:
 				totalDivDict[key] = columnDivDict[key]
-	return totalDivDict
+
+	# normalize dict
+	maxEntry, maxValue = max(totalDivDict.iteritems(), key=operator.itemgetter(1))
+	if maxValue != 0:
+		for entry in totalDivDict:
+			totalDivDict[entry] = 100*float(totalDivDict[entry])/maxValue
+
+	return totalDivDict, maxLines
 
 # returns the maximum distance to average
 def maxDistToAverage(divDict):
