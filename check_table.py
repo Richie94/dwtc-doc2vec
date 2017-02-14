@@ -44,36 +44,20 @@ def checkLanguage(header):
 	else:
 		return False
 
-# returns: boolean headerBroken, boolean rowHeader (row vs col), array header
 def checkHeader(cleanedTable):
-	# header direction
-	#rowHeader = True
-	#indexHeader, textHeader = [0], []
-
-	#if table["headerPosition"] == "FIRST_ROW":
-	#	rowHeader = True
-	#	textHeader = [h[0] for h in table["relation"]]
-	#elif table["headerPosition"] == "FIRST_COLUMN":
-	#	rowHeader = False
-	#	textHeader = table["relation"][0]
-	#elif table["headerPosition"] == "MIXED":
-	#	#relatively dirty header, so not keep him
-	#	return True, rowHeader, indexHeader, textHeader
-	#elif table["headerPosition"] == "NONE":
 	return guessHeaders(cleanedTable)
 
-	#return False, rowHeader, indexHeader, textHeader
 
 # returns if the check was positive, rowheader and headerindex
 def checkTable(table):
 	if checkSize(table["relation"]) == False:
-		return False, False, []
+		return False, 0, []
 	else:
 		print table["url"]
-		headersBroken, rowHeader, indexHeader, textHeader = checkHeader(table["relation"])
-		print headersBroken, rowHeader, indexHeader, textHeader
+		headerType, indexHeader = checkHeader(table["relation"])
+		print headerType, indexHeader
 		#if headersBroken == True or textHeader == []:
 		#	return False, rowHeader, indexHeader
 		#elif checkLanguage(textHeader) == False:
 		#	return False, rowHeader, indexHeader
-		return True, rowHeader, indexHeader
+		return True, headerType, indexHeader

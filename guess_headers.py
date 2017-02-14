@@ -36,54 +36,73 @@ impactFactor = {"S": 1,
 				"X": 10,
 				"D": 10}
 
-# returns: boolean headerBroken, boolean rowHeader (row vs col), array header
+# returns: boolean headerBroken, int headerType (nothing = 0, row=1, col=2, mixed=3), array header [[rowHeaders],[colHeaders]]
 def guessHeaders(table):
-	headers = []
-	transpose = [list(i) for i in zip(*table)]
-	patternTable = table2Pattern(table)
-	transposePattern = [list(i) for i in zip(*patternTable)]
-	
-	#print "Row"
-	totalRowDivDict = getTableDivergencyDict(patternTable)
-	#print "COl"
-	totalColDivDict = getTableDivergencyDict(transposePattern)
-	
-	indexHeader, textHeader = [], []
+	# TODO: For Mixed headers
+	# Idea 1: run same again with cutted header (while loop) -> need for threshhold (10, 15?)
+	# Idea 2: look for both stddev and have a threshhold of mb 2x min stddev
+	# idea: loop it until no stddev is below threshhold
+	# if e.g. rowstddev is below add the next top row to headers
+	rowOffset, colOffset = 0, 0
+	indexHeader = ([],[])
+	headerType = 0
+	_table = table[:]
+	while True:
+		print rowOffset, colOffset
 
-	# calculate standard deviation, normally where is less stddev should be the right orientation
-	rowVals = sorted([totalRowDivDict[key] for key in totalRowDivDict])
-	colVals = sorted([totalColDivDict[key] for key in totalColDivDict])
-	
-
-	#print rowVals
-	#print colVals
-
-
-	rowStd = np.std(rowVals[:-1])
-	colStd = np.std(colVals[:-1])
-	
-	#print rowStd, colStd
-	
-
-	if rowStd < colStd:
-		# assume rows are headers
-		rowHeader = True
-		maxRowEntry, maxRowValue = max(totalRowDivDict.iteritems(), key=operator.itemgetter(1))
-		indexHeader = [maxRowEntry]
-		textHeader = transpose[indexHeader[0]]
+		headers = []
+		transpose = [list(i) for i in zip(*_table)]
+		patternTable = table2Pattern(_table)
+		transposePattern = [list(i) for i in zip(*patternTable)]
 		
-		#TODO: Multiple headers? Possible but does not occur too often
-		#headerRows = [item for item in totalRowDivDict if totalRowDivDict[item] > math.ceil(maxRowValue*0.80)]
-		
-	else:
-		# assume cols are headers
-		rowHeader = False
-		maxColEntry, maxColValue = max(totalColDivDict.iteritems(), key=operator.itemgetter(1))
-		indexHeader = [maxColEntry]
-		textHeader = table[indexHeader[0]]
+		totalRowDivDict = getTableDivergencyDict(patternTable)
+		totalColDivDict = getTableDivergencyDict(transposePattern)
 
+		# calculate standard deviation, normally where is less stddev should be the right orientation
+		rowVals = sorted([totalRowDivDict[key] for key in totalRowDivDict])
+		colVals = sorted([totalColDivDict[key] for key in totalColDivDict])
+
+		#print "VALS:", rowVals, colVals
+		rowStd = np.std(rowVals[:-1])
+		colStd = np.std(colVals[:-1])
+
+		if math.isnan(rowStd) or rowStd == 0.0:
+			rowStd = 1000
+		if math.isnan(colStd) or colStd == 0.0:
+			colStd = 1000
+
+		print "STD:", rowStd, colStd
+
+
+		# threshhold for maximum stddev
+		if (rowStd > config.MAX_STD_DEV and colStd > config.MAX_STD_DEV) or (rowStd < 1 and colStd < 1):
+			print "Table too high stddev"
+			break 
+		if len(table) < config.MIN_COL_AMOUNT or len(table[0]) < config. MIN_ROW_AMOUNT:
+			print "Table too small "
+			break
+
+		if rowStd < colStd:
+			print "Row Chosen as Header"
+			# assume rows are headers
+			# MAXVAL vs First Etry?!
+			#maxRowEntry, maxRowValue = max(totalRowDivDict.iteritems(), key=operator.itemgetter(1))
+			if headerType == 0 or headerType == 2:
+				headerType += 1
+			indexHeader[0].append(rowOffset)
+			rowOffset += 1
+			_table = [entry[1:] for entry in _table]
+		else:
+			print "COl Chosen as Header"
+			# assume cols are headers
+			# MAXVAL vs First Etry?!
+			if headerType == 0 or headerType == 1:
+				headerType += 2
+			indexHeader[1].append(colOffset)
+			colOffset += 1
+			_table = _table[1:]
 	
-	return False, rowHeader, indexHeader, textHeader
+	return headerType, indexHeader
 
 def word2Pattern(word):
 	pattern = ""
@@ -134,11 +153,12 @@ def getColumnDivergencyDict(column):
 	return divDict
 
 def normalizeDefDict(defDict):
-	maxEntry, maxValue = max(defDict.iteritems(), key=operator.itemgetter(1))
-	minEntry, minValue = min(defDict.iteritems(), key=operator.itemgetter(1))
-	if maxValue != minValue:
-		for entry in defDict:
-			defDict[entry] = 100*((defDict[entry])-minValue)/(maxValue-minValue)
+	if len(defDict) > 0:
+		maxEntry, maxValue = max(defDict.iteritems(), key=operator.itemgetter(1))
+		minEntry, minValue = min(defDict.iteritems(), key=operator.itemgetter(1))
+		if maxValue != minValue:
+			for entry in defDict:
+				defDict[entry] = 100*((defDict[entry])-minValue)/(maxValue-minValue)
 	return defDict
 
 
