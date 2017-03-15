@@ -29,26 +29,24 @@ def initPatternDict():
 patternDict = initPatternDict()
 impactFactor = {"S": 1,
 				"s": 1,
-				"N": 7,
-				"P": 10,
-				"U": 10,
-				"E": 10,
-				"X": 10,
-				"D": 10}
+				"N": 5,
+				"P": 8,
+				"U": 8,
+				"E": 8,
+				"X": 8,
+				"D": 8}
 
-# returns: boolean headerBroken, int headerType (nothing = 0, row=1, col=2, mixed=3), array header [[rowHeaders],[colHeaders]]
+# returns: int headerType (nothing = 0, row=1, col=2, mixed=3), array header [[rowHeaders],[colHeaders]]
 def guessHeaders(table):
-	# TODO: For Mixed headers
-	# Idea 1: run same again with cutted header (while loop) -> need for threshhold (10, 15?)
-	# Idea 2: look for both stddev and have a threshhold of mb 2x min stddev
-	# idea: loop it until no stddev is below threshhold
+	# idea: calculate distance for every cell to average col/row
+	# cut out the highest and calculate stddev
+	# loop it until no stddev is below threshhold
 	# if e.g. rowstddev is below add the next top row to headers
 	rowOffset, colOffset = 0, 0
 	indexHeader = ([],[])
 	headerType = 0
 	_table = table[:]
 	while True:
-		print rowOffset, colOffset
 
 		headers = []
 		transpose = [list(i) for i in zip(*_table)]
@@ -62,7 +60,6 @@ def guessHeaders(table):
 		rowVals = sorted([totalRowDivDict[key] for key in totalRowDivDict])
 		colVals = sorted([totalColDivDict[key] for key in totalColDivDict])
 
-		#print "VALS:", rowVals, colVals
 		rowStd = np.std(rowVals[:-1])
 		colStd = np.std(colVals[:-1])
 
@@ -71,19 +68,14 @@ def guessHeaders(table):
 		if math.isnan(colStd) or colStd == 0.0:
 			colStd = 1000
 
-		print "STD:", rowStd, colStd
-
-
 		# threshhold for maximum stddev
-		if (rowStd > config.MAX_STD_DEV and colStd > config.MAX_STD_DEV) or (rowStd < 1 and colStd < 1):
-			print "Table too high stddev"
+		if (rowStd > config.MAX_STD_DEV and colStd > config.MAX_STD_DEV):
 			break 
+
 		if len(table) < config.MIN_COL_AMOUNT or len(table[0]) < config. MIN_ROW_AMOUNT:
-			print "Table too small "
 			break
 
 		if rowStd < colStd:
-			print "Row Chosen as Header"
 			# assume rows are headers
 			# MAXVAL vs First Etry?!
 			#maxRowEntry, maxRowValue = max(totalRowDivDict.iteritems(), key=operator.itemgetter(1))
@@ -93,9 +85,7 @@ def guessHeaders(table):
 			rowOffset += 1
 			_table = [entry[1:] for entry in _table]
 		else:
-			print "COl Chosen as Header"
 			# assume cols are headers
-			# MAXVAL vs First Etry?!
 			if headerType == 0 or headerType == 1:
 				headerType += 2
 			indexHeader[1].append(colOffset)
@@ -135,7 +125,7 @@ def getColumnDivergencyDict(column):
 	# Normalization
 	for entry in colOcc:
 		colOcc[entry] = math.ceil(float(colOcc[entry])/len(column))
-	#print colOcc
+
 	divDict = {}
 
 	for i, word in enumerate(column):
@@ -161,26 +151,13 @@ def normalizeDefDict(defDict):
 				defDict[entry] = 100*((defDict[entry])-minValue)/(maxValue-minValue)
 	return defDict
 
-
 def getTableDivergencyDict(table):
 	totalDivDict = {}
 	for column in table:
 		columnDivDict = getColumnDivergencyDict(column)
-		#print columnDivDict
 		for key in columnDivDict:
 			if key in totalDivDict:
 				totalDivDict[key] += columnDivDict[key]
 			else:
 				totalDivDict[key] = columnDivDict[key]
-
 	return normalizeDefDict(totalDivDict)
-
-# returns the maximum distance to average
-def maxDistToAverage(divDict):
-	average = sum([divDict[entry] for entry in divDict])/len(divDict)
-	maxDist = 0
-	for entry in divDict:
-		currentDist = abs(divDict[entry]-average)
-		if maxDist < currentDist:
-			maxDist = currentDist
-	return maxDist
