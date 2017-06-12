@@ -1,41 +1,54 @@
 # coding=UTF-8
 from gensim.models.doc2vec import TaggedDocument
+from glob import glob
+import config
 
-# General notice: if algorithm dbow us used, there should be no difference between both approaches
+# General notice: if algorithm dbow without dbow words is used
+# there should be no difference between both approaches
 
 #Approach 1: 1 table = 1 document
 # 	Pro: 	easy, fast
-# 	Contra: maybe wrong orientation -> column/line, no information use from lines
+# 	Contra: maybe wrong orientation -> column/line, no information use from lines (no problem in dbow)
 class OneDocOneLine(object):
-	def __init__(self, filename):
-		self.filename = filename
-		with open(self.filename, "r") as f:
-			self.lines = f.read().split("\n")
+	def __init__(self, window_size):
+		self.window_size = window_size
+		self.lines = []
+		for filename in glob(config.KEEP + "*.txt"):
+			with open(filename, "r") as f:
+				self.lines.extend(f.read().split("\n"))
+
+	def lineAmount(self):
+		return len(self.lines)
 
 	def __iter__(self):
 		for line in self.lines:
-			yield transformTableToOneDoc(line)
+			yield transformTableToOneDoc(line, self.window_size)
 
 #Approach 2: 1 table = x lines + y columns
 # 	Pro: 	complete information use
 #	Contra: slower
 class OneDocMultiLine(object):
-	def __init__(self, filename):
-		self.filename = filename
-		with open(self.filename, "r") as f:
-			self.lines = f.read().split("\n")
+	def __init__(self, window_size):
+		self.window_size = window_size
+		self.lines = []
+		for filename in glob(config.KEEP + "*.txt"):
+			with open(filename, "r") as f:
+				self.lines.extend(f.read().split("\n"))
+
+	def lineAmount(self):
+		return len(self.lines)
 
 	def __iter__(self):
 		for line in self.lines:
 			rowsAndCols = transformTableToRowsAndCols(line)
 			for (uid, text) in rowsAndCols:
-				yield TaggedDocument(words=text.lower().split(), tags=['SENT_%s' % uid])
+				yield TaggedDocument(words=text.lower().split(), tags=['%s' % uid])
 
-def transformTableToOneDoc(table):
+def transformTableToOneDoc(table, window_size):
 	splittedLine = table.split("\t")
 	uid = splittedLine[0]
-	text = (' _' * config.WINDOW_SIZE).join(splittedLine[1:])
-	return TaggedDocument(words=text.lower().split(), tags=['SENT_%s' % uid])
+	text = (' _' * window_size).join(splittedLine[1:])
+	return TaggedDocument(words=text.lower().split(), tags=['%s' % uid])
 
 def transformTableToRowsAndCols(table):
 	rowsAndCols = []
